@@ -1,142 +1,214 @@
-﻿
+﻿using Microsoft.ML;
+using Microsoft.ML.Transforms.Image;
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using ObjectDetection.YoloParser;
-using ObjectDetection.DataStructures;
-using ObjectDetection;
-using Microsoft.ML;
+using System.IO;
+using System.Linq;
+using Microsoft.ML.Data;
+using System.Drawing.Imaging;
 using System.Diagnostics;
+using Blankstahlscanner_Inferenz;
+using OpenCvSharp;
+using static Blankstahlscanner_Inferenz.AnomalyDetectionOnnx;
 
-var assetsRelativePath = @"./assets";
-string assetsPath = GetAbsolutePath(assetsRelativePath);
-var modelFilePath = Path.Combine(assetsPath, "Model", "TinyYolo2_model.onnx");
-var imagesFolder = Path.Combine(assetsPath, "images");
-var outputFolder = Path.Combine(assetsPath, "images", "output");
-
-// Initialize MLContext
-MLContext mlContext = new MLContext();
-
-try
+class Program
 {
-    // Load Data
-    IEnumerable<ImageNetData> images = ImageNetData.ReadFromFile(imagesFolder);
-    IDataView imageDataView = mlContext.Data.LoadFromEnumerable(images);
-
-    // Create instance of model scorer
-    var modelScorer = new OnnxModelScorer(imagesFolder, modelFilePath, mlContext);
-
-    // Use model to score data
-    Stopwatch stopWatch = new Stopwatch();
-    stopWatch.Start();
-    IEnumerable<float[]> probabilities = modelScorer.Score(imageDataView);
-    stopWatch.Stop();
-    TimeSpan ts = stopWatch.Elapsed;
-
-    Console.WriteLine("Inference took "+ts.TotalMilliseconds.ToString());
-    Console.ReadKey();
-
-
-    // Post-process model output
-    YoloOutputParser parser = new YoloOutputParser();
-
-    var boundingBoxes =
-        probabilities
-        .Select(probability => parser.ParseOutputs(probability))
-        .Select(boxes => parser.FilterBoundingBoxes(boxes, 5, .5F));
-
-    // Draw bounding boxes for detected objects in each of the images
-    for (var i = 0; i < images.Count(); i++)
+    public static int patchSize = 256;
+    static void Main(string[] args)
     {
-        string imageFileName = images.ElementAt(i).Label;
-        IList<YoloBoundingBox> detectedObjects = boundingBoxes.ElementAt(i);
+        string onnxModelPath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\900EfficientAd_model2.onnx";
+        string imagePath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\test_900_900.png";
+        string outputImagePath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\anomaly_map_output.png";
 
-        DrawBoundingBox(imagesFolder, outputFolder, imageFileName, detectedObjects);
+        var inputImage = Cv2.ImRead(imagePath);
+        //Cv2.Resize(inputImage, inputImage, new OpenCvSharp.Size(ImageNetSettings.imageWidth, ImageNetSettings.imageHeight));
 
-        LogDetectedObjects(imageFileName, detectedObjects);
+        var mlContext = new MLContext();
+
+        var ad =new AnomalyDetectionOnnx(onnxModelPath, mlContext);
+        var input = new List<Mat>() { inputImage };
+        
+        Stopwatch stopWatch = new Stopwatch();
+        stopWatch.Start();
+        var res = ad.Score(input);
+        stopWatch.Stop();
+        TimeSpan ts = stopWatch.Elapsed;
+        Console.WriteLine("Inference took " + ts.TotalMilliseconds.ToString());
+        Cv2.ImShow("Output", res[0]);
+        Cv2.WaitKey();
+
+
+        //// Lade das Bild und wandle es mithilfe der ML.NET-Pipeline in einen Tensor um
+        //var inputTensor = ImagePreprocessor.PreprocessImageWithMlNet(imagePath, mlContext, patchSize);
+
+        //File.WriteAllLines("dotnet_tensor.csv", inputTensor.ToArray().Select(v => v.ToString()));
+
+        //// Inferenz mit dem ONNX-Modell
+        //var anomalyMapData = PredictWithOnnxModel(onnxModelPath, inputTensor);
+        //anomalyMapData = PredictWithOnnxModel(onnxModelPath, inputTensor);
+        //anomalyMapData = PredictWithOnnxModel(onnxModelPath, inputTensor);
+
+        //// Ergebnisbild speichern
+        ////SaveAnomalyMap(anomalyMapData, outputImagePath);
+        //ImagePreprocessor.SaveTensorAsImage(anomalyMapData,patchSize, patchSize,outputImagePath);
     }
-}
-catch (Exception ex)
-{
-    Console.WriteLine(ex.ToString());
-}
 
-Console.WriteLine("========= End of Process..Hit any Key ========");
-
-string GetAbsolutePath(string relativePath)
-{
-    FileInfo _dataRoot = new FileInfo(typeof(Program).Assembly.Location);
-    string assemblyFolderPath = _dataRoot.Directory.FullName;
-
-    string fullPath = Path.Combine(assemblyFolderPath, relativePath);
-
-    return fullPath;
-}
-
-void DrawBoundingBox(string inputImageLocation, string outputImageLocation, string imageName, IList<YoloBoundingBox> filteredBoundingBoxes)
-{
-    Image image = Image.FromFile(Path.Combine(inputImageLocation, imageName));
-
-    var originalImageHeight = image.Height;
-    var originalImageWidth = image.Width;
-
-    foreach (var box in filteredBoundingBoxes)
+    static float[] PredictWithOnnxModel(string onnxModelPath, Tensor<float> inputTensor)
     {
-        // Get Bounding Box Dimensions
-        var x = (uint)Math.Max(box.Dimensions.X, 0);
-        var y = (uint)Math.Max(box.Dimensions.Y, 0);
-        var width = (uint)Math.Min(originalImageWidth - x, box.Dimensions.Width);
-        var height = (uint)Math.Min(originalImageHeight - y, box.Dimensions.Height);
+        var sessionOptions = new SessionOptions();
+        sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_EXTENDED;
+        sessionOptions.EnableMemoryPattern = true;
+        sessionOptions.ExecutionMode = ExecutionMode.ORT_PARALLEL;
+        sessionOptions.AppendExecutionProvider_CUDA(0);
 
-        // Resize To Image
-        x = (uint)originalImageWidth * x / OnnxModelScorer.ImageNetSettings.imageWidth;
-        y = (uint)originalImageHeight * y / OnnxModelScorer.ImageNetSettings.imageHeight;
-        width = (uint)originalImageWidth * width / OnnxModelScorer.ImageNetSettings.imageWidth;
-        height = (uint)originalImageHeight * height / OnnxModelScorer.ImageNetSettings.imageHeight;
+        using var session = new InferenceSession(onnxModelPath, sessionOptions);
 
-        // Bounding Box Text
-        string text = $"{box.Label} ({(box.Confidence * 100).ToString("0")}%)";
-
-        using (Graphics thumbnailGraphic = Graphics.FromImage(image))
+        var inputs = new List<NamedOnnxValue>
         {
-            thumbnailGraphic.CompositingQuality = CompositingQuality.HighQuality;
-            thumbnailGraphic.SmoothingMode = SmoothingMode.HighQuality;
-            thumbnailGraphic.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            NamedOnnxValue.CreateFromTensor("input", inputTensor)
+        };
 
-            // Define Text Options
-            Font drawFont = new Font("Arial", 12, FontStyle.Bold);
-            SizeF size = thumbnailGraphic.MeasureString(text, drawFont);
-            SolidBrush fontBrush = new SolidBrush(Color.Black);
-            Point atPoint = new Point((int)x, (int)y - (int)size.Height - 1);
+        // Modell ausführen
+        Stopwatch stopWatch = new Stopwatch();
+        stopWatch.Start();
+        using var results = session.Run(inputs);
+        stopWatch.Stop();
+        TimeSpan ts = stopWatch.Elapsed;
+        Console.WriteLine("Inference took " + ts.TotalMilliseconds.ToString());
+        Console.ReadKey();
+        var anomalyMapTensor = results.First(r => r.Name == "anomaly_map").AsTensor<float>();
 
-            // Define BoundingBox options
-            Pen pen = new Pen(box.BoxColor, 3.2f);
-            SolidBrush colorBrush = new SolidBrush(box.BoxColor);
+        return anomalyMapTensor.ToArray();
+    }
 
-            // Draw text on image 
-            thumbnailGraphic.FillRectangle(colorBrush, (int)x, (int)(y - size.Height - 1), (int)size.Width, (int)size.Height);
-            thumbnailGraphic.DrawString(text, drawFont, fontBrush, atPoint);
+    static void SaveHeatmapAsImage(float[] heatmap, int originalWidth, int originalHeight, int targetWidth, int targetHeight, string filePath)
+    {
+        // 1. Normierung auf den Bereich 0-255
+        float min = heatmap.Min();
+        float max = heatmap.Max();
+        float range = max - min;
 
-            // Draw bounding box on image
-            thumbnailGraphic.DrawRectangle(pen, x, y, width, height);
+        if (range == 0)
+        {
+            range = 1; // Vermeidung von Division durch 0
         }
+
+        byte[] normalizedHeatmap = heatmap.Select(value => (byte)(255 * (value - min) / range)).ToArray();
+
+        // 2. Array auf das Zielbildformat umwandeln
+        using var originalBitmap = new Bitmap(originalWidth, originalHeight);
+        for (int y = 0; y < originalHeight; y++)
+        {
+            for (int x = 0; x < originalWidth; x++)
+            {
+                byte intensity = normalizedHeatmap[y * originalWidth + x];
+                originalBitmap.SetPixel(x, y, Color.FromArgb(intensity, intensity, intensity));
+            }
+        }
+
+        // 3. Reskalieren des Bildes
+        using var resizedBitmap = new Bitmap(targetWidth, targetHeight);
+        using (Graphics graphics = Graphics.FromImage(resizedBitmap))
+        {
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+            graphics.DrawImage(originalBitmap, 0, 0, targetWidth, targetHeight);
+        }
+
+        // 4. Speichern des Bildes
+        resizedBitmap.Save(filePath, ImageFormat.Png);
     }
 
-    if (!Directory.Exists(outputImageLocation))
+    static void SaveAnomalyMap(float[] anomalyMapData, string outputImagePath)
     {
-        Directory.CreateDirectory(outputImageLocation);
-    }
+        int height = patchSize;
+        int width = patchSize;
 
-    image.Save(Path.Combine(outputImageLocation, imageName));
+        float min = anomalyMapData.Min();
+        float max = anomalyMapData.Max();
+        byte[] normalizedData = new byte[anomalyMapData.Length];
+        for (int i = 0; i < anomalyMapData.Length; i++)
+        {
+            normalizedData[i] = (byte)((anomalyMapData[i] - min) / (max - min) * 255);
+        }
+
+        using var bitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
+        var palette = bitmap.Palette;
+        for (int i = 0; i < 256; i++)
+        {
+            palette.Entries[i] = Color.FromArgb(i, i, i);
+        }
+        bitmap.Palette = palette;
+
+        var bitmapData = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, bitmap.PixelFormat);
+        System.Runtime.InteropServices.Marshal.Copy(normalizedData, 0, bitmapData.Scan0, normalizedData.Length);
+        bitmap.UnlockBits(bitmapData);
+
+        bitmap.Save(outputImagePath, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine($"Anomaly map saved to {outputImagePath}");
+    }
 }
 
-void LogDetectedObjects(string imageName, IList<YoloBoundingBox> boundingBoxes)
+
+
+
+public class ImagePreprocessor
 {
-    Console.WriteLine($".....The objects in the image {imageName} are detected as below....");
-
-    foreach (var box in boundingBoxes)
+    public static string debugOutputImagePath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\debug_output.png";
+    public static Tensor<float> PreprocessImageWithMlNet(string imagePath, MLContext mlContext, int patchSize)
     {
-        Console.WriteLine($"{box.Label} and its Confidence score: {box.Confidence}");
+        var data = new List<ImageData> { new ImageData { ImagePath = imagePath } };
+        var dataView = mlContext.Data.LoadFromEnumerable(data);
+
+        var pipeline = mlContext.Transforms.LoadImages(
+                outputColumnName: "Image",
+                imageFolder: Path.GetDirectoryName(imagePath),
+                inputColumnName: nameof(ImageData.ImagePath))
+            .Append(mlContext.Transforms.ResizeImages(
+                outputColumnName: "Image",
+                imageWidth: patchSize,
+                imageHeight: patchSize))
+            .Append(mlContext.Transforms.ExtractPixels(
+                outputColumnName: "Image",
+                interleavePixelColors: true, // RGB-Kanalreihenfolge
+                scaleImage: 1f / 255f));     // Skaliert Pixel auf [0,1]
+
+        var transformedData = pipeline.Fit(dataView).Transform(dataView);
+        var imageColumn = transformedData.GetColumn<VBuffer<float>>("Image").First();
+
+        float[] imageData = imageColumn.DenseValues().ToArray();
+        SaveTensorAsImage(imageData, patchSize, patchSize, debugOutputImagePath);
+        return new DenseTensor<float>(imageData, new int[] { 1, 3, patchSize, patchSize });
     }
 
-    Console.WriteLine("");
+    public static void SaveTensorAsImage(float[] imageData, int width, int height, string outputPath)
+    {
+        using var bitmap = new Bitmap(width, height);
+        int index = 0;
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                // Hole R, G, und B-Kanäle aus dem normalisierten float[]-Array
+                //byte r = (byte)(imageData[index++] * 255);
+                byte g = (byte)(imageData[index++] * 255);
+                //byte b = (byte)(imageData[index++] * 255);
+
+                // Setze Pixel im Bitmap
+                bitmap.SetPixel(x, y, Color.FromArgb(g, g, g));
+            }
+        }
+
+        bitmap.Save(outputPath, ImageFormat.Png);
+        Console.WriteLine($"Image saved to {outputPath}");
+    }
+
+    public class ImageData
+    {
+        public string ImagePath { get; set; }
+    }
 }
+
