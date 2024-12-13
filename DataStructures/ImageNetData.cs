@@ -1,24 +1,31 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.ML.Data;
+using Microsoft.ML.Transforms.Image;
+using OpenCvSharp;
 
-namespace ObjectDetection.DataStructures
+namespace Anomaly.DataStructures
 {
     public class ImageNetData
     {
         [LoadColumn(0)]
-        public string ImagePath;
+        [ImageType(256, 256)]
+        public MLImage Image { get; set; }
 
-        [LoadColumn(1)]
-        public string Label;
-
-        public static IEnumerable<ImageNetData> ReadFromFile(string imageFolder)
+        public static IEnumerable<ImageNetData> ReadFromMatList(IList<Mat> images)
         {
-            return Directory
-                .GetFiles(imageFolder)
-                .Where(filePath => Path.GetExtension(filePath) != ".md")
-                .Select(filePath => new ImageNetData { ImagePath = filePath, Label = Path.GetFileName(filePath) });
+            foreach (var img in images)
+            {
+                yield return ReadFromMat(img);
+            }
+        }
+
+        public static ImageNetData ReadFromMat(Mat image)
+        {
+            var ms = new MemoryStream(image.ToBytes());
+            return new ImageNetData { Image = MLImage.CreateFromStream(ms) };
         }
     }
 }
