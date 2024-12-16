@@ -6,7 +6,7 @@ using Microsoft.ML.Data;
 using Microsoft.ML.Transforms.Image;
 using OpenCvSharp;
 
-namespace Anomaly.DataStructures
+namespace Blankstahlscanner_Inferenz.DataStructures
 {
     public class ImageNetData
     {

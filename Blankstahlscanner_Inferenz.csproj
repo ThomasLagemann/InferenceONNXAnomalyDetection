@@ -15,14 +15,19 @@
     <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="3.0.1" />
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.10" />
     <PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.10.0.20241108" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="assets\images\test_900_900.png">
+    <ProjectReference Include="..\DefectScanner\DefectScanner.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="assets\images\test_9000_1920.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="assets\model\900EfficientAd_model2.onnx">
+    <None Update="assets\images\test_900_900.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -12,9 +12,12 @@ using System.Drawing.Imaging;
 using System.Diagnostics;
 using DefectScanner;
 using OpenCvSharp;
-using static DefectScanner.AnomalyDetectionOnnx;
-using Anomaly.DataStructures;
+using OpenCvSharp.Extensions;
+
 using static Microsoft.ML.Transforms.Image.ImagePixelExtractingEstimator;
+using Blankstahlscanner_Inferenz.DataStructures;
+using DefectScanner.Interfaces;
+using DefectScanner.Detection;
 
 class Program
 {
@@ -23,53 +26,55 @@ class Program
     {
         string assetsFolderPath = Path.Combine(AppContext.BaseDirectory, "Assets");
         string onnxModelPath = Path.Combine(assetsFolderPath, "model", "900EfficientAd_model2.onnx");
-        string input = Path.Combine(assetsFolderPath, "images", "test_900_900.png");
-        var inputImage = Cv2.ImRead(input);
+        string input = Path.Combine(assetsFolderPath, "images", "test_9000_1920.jpg");
+        //var inputImage = Cv2.ImRead(input);
+        Bitmap bitmap = new Bitmap(input);
+
         //Cv2.Resize(inputImage, inputImage, new OpenCvSharp.Size(ImageNetSettings.imageWidth, ImageNetSettings.imageHeight));
-
+        var ds = new DefectScannerImplementation(onnxModelPath);
+        ds.Detect(bitmap);
         
-        var ad = new AnomalyDetectionOnnx(onnxModelPath);
-        var input1 = new List<Mat>() { inputImage };
-        var input10 = new List<Mat>() { inputImage, inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone() };
-        var input100 = new List<Mat>() { inputImage.Clone(), inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage };
-        Mat resFirst = ad.Score(input1).First();
+        //var input1 = new List<Mat>() { inputImage };
+        //var input10 = new List<Mat>() { inputImage, inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone(), inputImage.Clone() };
+        //var input100 = new List<Mat>() { inputImage.Clone(), inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage, inputImage };
+        //Mat resFirst = ad.Score(input1).First();
 
-        Stopwatch stopWatch1 = new Stopwatch();
-        Stopwatch stopWatch = new Stopwatch();
-        stopWatch1.Start();
-        IEnumerable<Mat>? res = null;
-        for (int i = 0; i < 10; i++)
-        {
-            stopWatch.Restart();
-            res = ad.Score(input1);
-            stopWatch.Stop();
-            TimeSpan ts = stopWatch.Elapsed;
-            Console.WriteLine("Inference of 1 image took " + ts.TotalMilliseconds.ToString() + " ms");
-        }
-        var resList = res.ToList();
-        var myRes1 = resList[0];
+        //Stopwatch stopWatch1 = new Stopwatch();
+        //Stopwatch stopWatch = new Stopwatch();
+        //stopWatch1.Start();
+        //IEnumerable<Mat>? res = null;
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    stopWatch.Restart();
+        //    res = ad.Score(input1);
+        //    stopWatch.Stop();
+        //    TimeSpan ts = stopWatch.Elapsed;
+        //    Console.WriteLine("Inference of 1 image took " + ts.TotalMilliseconds.ToString() + " ms");
+        //}
+        //var resList = res.ToList();
+        //var myRes1 = resList[0];
 
-        stopWatch1.Stop();
-        Console.WriteLine("Inference of 10 timea 1 image took " + stopWatch1.Elapsed.TotalMilliseconds.ToString() + " ms");
+        //stopWatch1.Stop();
+        //Console.WriteLine("Inference of 10 timea 1 image took " + stopWatch1.Elapsed.TotalMilliseconds.ToString() + " ms");
         
-        stopWatch1.Restart();
-        for (int i = 0; i < 10; i++)
-        {
-            stopWatch.Restart();
-            res = ad.Score(input10);
-            stopWatch.Stop();
-            TimeSpan ts = stopWatch.Elapsed;
-            Console.WriteLine("Inference of 10 images took " + ts.TotalMilliseconds.ToString() + " ms");
-        }
-        resList = res.ToList();
-        var myRes10 = resList[0];
+        //stopWatch1.Restart();
+        //for (int i = 0; i < 10; i++)
+        //{
+        //    stopWatch.Restart();
+        //    res = ad.Score(input10);
+        //    stopWatch.Stop();
+        //    TimeSpan ts = stopWatch.Elapsed;
+        //    Console.WriteLine("Inference of 10 images took " + ts.TotalMilliseconds.ToString() + " ms");
+        //}
+        //resList = res.ToList();
+        //var myRes10 = resList[0];
 
-        stopWatch1.Stop();
-        Console.WriteLine("Inference of 10 time 10 images took " + stopWatch1.Elapsed.TotalMilliseconds.ToString() + " ms");
+        //stopWatch1.Stop();
+        //Console.WriteLine("Inference of 10 time 10 images took " + stopWatch1.Elapsed.TotalMilliseconds.ToString() + " ms");
         
 
-        Cv2.ImShow("Output", res.First());
-        Cv2.WaitKey();
+        //Cv2.ImShow("Output", res.First());
+        //Cv2.WaitKey();
         return;
        
         
@@ -167,68 +172,68 @@ class Program
 
 
 
-public class ImagePreprocessor
-{
-    public static string debugOutputImagePath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\debug_output.png";
-    public static Tensor<float> PreprocessImageWithMlNet(List<Mat> images, MLContext mlContext, int patchSize)
-    {
-        IEnumerable<ImageNetData> imageNetData = ImageNetData.ReadFromMatList(images);
-        //DebugPreprocessedData(imageNetData);
-        IDataView imageDataView = mlContext.Data.LoadFromEnumerable(imageNetData);
+//public class ImagePreprocessor
+//{
+//    public static string debugOutputImagePath = "D:\\Repos\\Blankstahlscanner_Inferenz\\onnxconverter\\debug_output.png";
+//    public static Tensor<float> PreprocessImageWithMlNet(List<Mat> images, MLContext mlContext, int patchSize)
+//    {
+//        IEnumerable<ImageNetData> imageNetData = ImageNetData.ReadFromMatList(images);
+//        //DebugPreprocessedData(imageNetData);
+//        IDataView imageDataView = mlContext.Data.LoadFromEnumerable(imageNetData);
         
 
-        var pipeline = mlContext.Transforms.ResizeImages(
-                outputColumnName: ModelSettings.ModelInput,
-                imageWidth: ImageNetSettings.imageWidth,
-                imageHeight: ImageNetSettings.imageHeight,
-                inputColumnName: nameof(ImageNetData.Image))
-            .Append(
-                mlContext.Transforms.ExtractPixels(
-                    outputColumnName: ModelSettings.ModelInput,
-                    offsetImage: ImageNetSettings.mean,
-                    interleavePixelColors: ImageNetSettings.interleavePixelColors,
-                    outputAsFloatArray: true,
-                    scaleImage: ImageNetSettings.scale,
-                    orderOfExtraction: ColorsOrder.ABGR))
-            .Append(mlContext.Transforms.CustomMapping<ReshapeTransformerInput, ReshapeTransformerOutput>(
-                                          (input, output) => ReshapeTransformer.Mapping(input, output),
-                                          contractName: nameof(ReshapeTransformer)));
+//        var pipeline = mlContext.Transforms.ResizeImages(
+//                outputColumnName: ModelSettings.ModelInput,
+//                imageWidth: ImageNetSettings.imageWidth,
+//                imageHeight: ImageNetSettings.imageHeight,
+//                inputColumnName: nameof(ImageNetData.Image))
+//            .Append(
+//                mlContext.Transforms.ExtractPixels(
+//                    outputColumnName: ModelSettings.ModelInput,
+//                    offsetImage: ImageNetSettings.mean,
+//                    interleavePixelColors: ImageNetSettings.interleavePixelColors,
+//                    outputAsFloatArray: true,
+//                    scaleImage: ImageNetSettings.scale,
+//                    orderOfExtraction: ColorsOrder.ABGR))
+//            .Append(mlContext.Transforms.CustomMapping<ReshapeTransformerInput, ReshapeTransformerOutput>(
+//                                          (input, output) => ReshapeTransformer.Mapping(input, output),
+//                                          contractName: nameof(ReshapeTransformer)));
 
-        var transformedData = pipeline.Fit(imageDataView).Transform(imageDataView);
+//        var transformedData = pipeline.Fit(imageDataView).Transform(imageDataView);
         
-        var imageColumn = transformedData.GetColumn<VBuffer<float>>(ModelSettings.ModelInput).Last();
+//        var imageColumn = transformedData.GetColumn<VBuffer<float>>(ModelSettings.ModelInput).Last();
 
-        float[] imageData = imageColumn.DenseValues().ToArray();
-        SaveTensorAsImage(imageData, patchSize, patchSize, debugOutputImagePath);
-        return new DenseTensor<float>(imageData, new int[] { 1, 3, patchSize, patchSize });
-    }
+//        float[] imageData = imageColumn.DenseValues().ToArray();
+//        SaveTensorAsImage(imageData, patchSize, patchSize, debugOutputImagePath);
+//        return new DenseTensor<float>(imageData, new int[] { 1, 3, patchSize, patchSize });
+//    }
 
-    public static void SaveTensorAsImage(float[] imageData, int width, int height, string outputPath)
-    {
-        using var bitmap = new Bitmap(width, height);
-        int index = 0;
+//    public static void SaveTensorAsImage(float[] imageData, int width, int height, string outputPath)
+//    {
+//        using var bitmap = new Bitmap(width, height);
+//        int index = 0;
 
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                // Hole R, G, und B-Kanäle aus dem normalisierten float[]-Array
-                //byte r = (byte)(imageData[index++] * 255);
-                byte g = (byte)(imageData[index++] * 255);
-                //byte b = (byte)(imageData[index++] * 255);
+//        for (int y = 0; y < height; y++)
+//        {
+//            for (int x = 0; x < width; x++)
+//            {
+//                // Hole R, G, und B-Kanäle aus dem normalisierten float[]-Array
+//                //byte r = (byte)(imageData[index++] * 255);
+//                byte g = (byte)(imageData[index++] * 255);
+//                //byte b = (byte)(imageData[index++] * 255);
 
-                // Setze Pixel im Bitmap
-                bitmap.SetPixel(x, y, Color.FromArgb(g, g, g));
-            }
-        }
+//                // Setze Pixel im Bitmap
+//                bitmap.SetPixel(x, y, Color.FromArgb(g, g, g));
+//            }
+//        }
 
-        bitmap.Save(outputPath, ImageFormat.Png);
-        Console.WriteLine($"Image saved to {outputPath}");
-    }
+//        bitmap.Save(outputPath, ImageFormat.Png);
+//        Console.WriteLine($"Image saved to {outputPath}");
+//    }
 
-    public class ImageData
-    {
-        public string ImagePath { get; set; }
-    }
-}
+//    public class ImageData
+//    {
+//        public string ImagePath { get; set; }
+//    }
+//}
 

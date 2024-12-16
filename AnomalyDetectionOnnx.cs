@@ -1,5 +1,4 @@
-﻿using Anomaly.DataStructures;
-using Microsoft.ML;
+﻿using Microsoft.ML;
 using Microsoft.ML.Data;
 using OpenCvSharp;
 using System;
@@ -17,8 +16,9 @@ using System.Threading.Tasks;
 using static Microsoft.ML.Transforms.Image.ImagePixelExtractingEstimator;
 using System.Globalization;
 using Microsoft.ML.Transforms;
+using Blankstahlscanner_Inferenz.DataStructures;
 
-namespace DefectScanner
+namespace Blankstahlscanner
 {
 
     public class ReshapeTransformer : CustomMappingFactory<ReshapeTransformerInput, ReshapeTransformerOutput>
