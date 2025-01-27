@@ -15,7 +15,7 @@ using OpenCvSharp;
 using OpenCvSharp.Extensions;
 
 using static Microsoft.ML.Transforms.Image.ImagePixelExtractingEstimator;
-using Blankstahlscanner_Inferenz.DataStructures;
+
 using DefectScanner.Interfaces;
 using DefectScanner.Detection;
 
