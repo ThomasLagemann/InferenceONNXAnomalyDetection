@@ -156,7 +156,7 @@ namespace Blankstahlscanner
             IDataView scoredData = model.Transform(testData);
             //sw.Stop();
             //Console.WriteLine("model.Transform took " + sw.Elapsed.TotalMilliseconds + " ms");
-            //DebugTransformedData(scoredData, ModelSettings.ModelInput);
+            DebugTransformedData(scoredData, ModelSettings.ModelInput);
 
             //var schema = scoredData.Schema;
 

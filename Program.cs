@@ -25,7 +25,7 @@ class Program
     static void Main(string[] args)
     {
         string assetsFolderPath = Path.Combine(AppContext.BaseDirectory, "Assets");
-        string onnxModelPath = Path.Combine(assetsFolderPath, "model", "900EfficientAd_model2.onnx");
+        string onnxModelPath = Path.Combine(assetsFolderPath, "model", "512_256_EfficientAd_model15.onnx");
         string input = Path.Combine(assetsFolderPath, "images", "test_9000_1920.jpg");
         //var inputImage = Cv2.ImRead(input);
         Bitmap bitmap = new Bitmap(input);
