@@ -30,6 +30,9 @@
     <None Update="assets\images\test_9000_1920_8bpp.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="assets\images\test_9000_1920_area.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="assets\images\test_900_900.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
